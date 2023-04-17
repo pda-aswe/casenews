@@ -37,3 +37,7 @@ def test_mqttRequestResponseProzess(mock_sub,mock_pub):
     messenger.mqttRequestResponseProzess(Queue(),"test/request","asdf","test/response")
     mock_pub.assert_called_with("test/request",payload="asdf",hostname=ANY,port=ANY)
     mock_sub.assert_called_with("test/response",hostname=ANY,port=ANY)
+
+def test_intersection():
+    assert messenger.intersection(["asdf","1234"],["jklö"]) == []
+    assert messenger.intersection(["asdf","1234"],["asdf"]) == ["asdf"]
