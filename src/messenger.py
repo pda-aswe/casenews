@@ -100,6 +100,28 @@ class Messenger():
                 else:
                     if('summary' in newsData[0]):
                         self.mqttConnection.publish("tts", newsData[0]['summary'])
+                        q = Queue()
+                        process = Process(target=mqttRequestResponseProzess, args=(q,"tts","Sag ja falls du mehr wissen willst?","stt"))
+                        process.start()
+                        process.join(timeout=15)
+                        process.terminate()
+                        if process.exitcode == 0:
+                            try:
+                                mqttData = q.get(timeout=1)
+                            except:
+                                return(False)
+
+                            try:
+                                mqttData = json.loads(str(mqttData.decode("utf-8")))
+                            except:
+                                print("Can't decode message")
+                                return(False)
+
+                            for value in mqttData["tokens"]:
+                                if value["token"] == "ja":
+                                    self.mqttConnection.publish("tts", newsData[0]['text'])
+                                    break
+
             else:
                 print("News service terminated unsucessfully")
                 return(False)
