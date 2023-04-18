@@ -58,7 +58,6 @@ class Messenger():
 
         #check if stt  for this use case
         if intersection(sttData["nouns"], activation_nouns):
-
             # Make Request Response to location service if needed
             location = {}
             if intersection(sttData["adj"], location_modifier):
@@ -83,7 +82,7 @@ class Messenger():
                 'numArticles': 1,
                 'location': location
             }
-            process = Process(target = mqttRequestResponseProzess, args = (queue, "req/news", newsRequestPayload, "news/article"))
+            process = Process(target = mqttRequestResponseProzess, args = (queue, "req/news", json.dumps(newsRequestPayload), "news/article"))
             process.start()
             process.join(timeout = 15)
             process.terminate()
@@ -94,12 +93,13 @@ class Messenger():
                 except:
                     print("Can't decode news request answer")
                     return(False)
-                if intersection(sttData["adj"], length_modifier_long):
-                    if('text' in newsData[0]):
-                        self.mqttConnection.publish("tts", newsData[0]['text'])
+
+                if intersection(sttData["adv"], length_modifier_long):
+                    if('text' in newsData):
+                        self.mqttConnection.publish("tts", newsData['text'])
                 else:
-                    if('summary' in newsData[0]):
-                        self.mqttConnection.publish("tts", newsData[0]['summary'])
+                    if('summary' in newsData):
+                        self.mqttConnection.publish("tts", newsData['summary'])
                         q = Queue()
                         process = Process(target=mqttRequestResponseProzess, args=(q,"tts","Sag ja falls du mehr wissen willst?","stt"))
                         process.start()
@@ -119,7 +119,7 @@ class Messenger():
 
                             for value in mqttData["tokens"]:
                                 if value["token"] == "ja":
-                                    self.mqttConnection.publish("tts", newsData[0]['text'])
+                                    self.mqttConnection.publish("tts", newsData['text'])
                                     break
 
             else:
@@ -170,8 +170,8 @@ class Messenger():
             except:
                 print("Can't decode news request answer")
                 return(False)
-            if('summary' in newsData[0]):
-                self.mqttConnection.publish("tts", newsData[0]['summary'])  
+            if('summary' in newsData):
+                self.mqttConnection.publish("tts", newsData['summary'])  
         else:
             print("News service terminated unsucessfully")
             return(False)
@@ -187,6 +187,9 @@ def mqttRequestResponseProzess(q, requestTopic, requestData, responseTopic):
     else:
         mqtt_address = "localhost"
 
-    publish.single(requestTopic,payload=requestData,hostname=mqtt_address,port=1883)
+    if requestData is None:
+        publish.single(requestTopic,hostname=mqtt_address,port=1883)
+    else:
+        publish.single(requestTopic,payload=requestData,hostname=mqtt_address,port=1883)
     mqttResponse = subscribe.simple(responseTopic,hostname=mqtt_address,port=1883).payload
     q.put(mqttResponse)
